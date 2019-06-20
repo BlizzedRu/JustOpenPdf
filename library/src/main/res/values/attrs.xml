@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <declare-styleable name="PdfView">
+        <attr name="pageLayout" format="reference"/>
+        <attr name="pageLayoutImageViewId" format="reference"/>
+        <attr name="renderResolutionFactor" format="float"/>
+        <attr name="android:background" format="reference"/>
+    </declare-styleable>
+
+</resources>
