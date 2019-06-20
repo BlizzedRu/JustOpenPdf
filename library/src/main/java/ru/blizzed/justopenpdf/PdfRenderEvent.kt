@@ -16,8 +16,28 @@
 
 package ru.blizzed.justopenpdf
 
+/**
+ * This class represents an event of PDF rendering process.
+ */
 sealed class PdfRenderEvent {
+    /**
+     * PDF rendering in process.
+     *
+     * Getting this event you can for example show progress bar to user.
+     */
     object Processing : PdfRenderEvent()
+
+    /**
+     * PDF rendering interrupted with error.
+     *
+     * Getting this event you can handle and react on any exceptions.
+     */
     class Error(val throwable: Throwable) : PdfRenderEvent()
+
+    /**
+     * PDF rendering completed. [PdfView] displays all rendered pages.
+     *
+     * Getting this event you can for example hide progress bar.
+     */
     object Completed : PdfRenderEvent()
 }

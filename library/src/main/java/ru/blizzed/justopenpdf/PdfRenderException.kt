@@ -16,4 +16,7 @@
 
 package ru.blizzed.justopenpdf
 
+/**
+ * All rendering and IO exceptions arising in process of opening and rendering PDF file are wrapped by this exception.
+ */
 class PdfRenderException @JvmOverloads constructor(message: String? = null, cause: Throwable? = null) : Exception(message, cause)
