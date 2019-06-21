@@ -29,8 +29,6 @@ import androidx.annotation.IdRes
 import androidx.annotation.LayoutRes
 import androidx.core.content.withStyledAttributes
 import androidx.core.view.doOnLayout
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import com.otaliastudios.zoom.ZoomApi
 import com.otaliastudios.zoom.ZoomLayout
 import io.reactivex.android.schedulers.AndroidSchedulers
@@ -48,18 +46,23 @@ import java.io.IOException
  * Note that this attribute works in pair with "app:pageLayoutImageViewId" that points on target [ImageView] in layout.
  * If it is not set "@id/page_target_image" will be used.
  *
- * Note: This library is not good optimized. PDF file renders entirely, all pages at once.
- * So you can face with memory troubles if you will try to open PDF with big amount of pages.
- * A size of each bitmap depends on container's screen size. With growth of screen resolution a memory consumption also grows.
+ *
+ * Note: This library is not well optimized. PDF file renders entirely, all pages at once. So you can encounter an memory troubles
+ * if you will try to open PDF with a big amount of pages. A size of each bitmap depends on container's size.
+ * With increasing of screen resolution a memory consumption also increases.
+ *
  * You can affect on bitmaps sizes using "app:renderResolutionFactor" attribute. The default factor is 1
  * (it means that bitmap size will coincide with the size of PdfView container).
+ *
  * I did research about this topic and I found out that up to 15 pages on device with FullHD screen are still good and
  * better in comparison with [android.webkit.WebView] with the opened Google Doc Previewer.
+ *
  *
  * This view based on [ZoomLayout] so you can customize it as you want.
  * I am very thankful to [natario1](https://github.com/natario1) for this [ZoomLayout] library.
  *
  * TODO: Add double tap to zoom
+ * TODO: Current page listener for updating page counter
  * TODO: Dynamic rendering (not all pages at once) and moving to RecyclerView
  */
 open class PdfView @JvmOverloads constructor(
@@ -102,43 +105,40 @@ open class PdfView @JvmOverloads constructor(
     /**
      * Opens and displays [file] in PDF format.
      *
-     * Subscribe to result [LiveData] for receiving rendering events.
+     * Pass an [eventListener] parameter for receiving rendering events.
      *
      * @param file File in PDF format to render and display.
-     * @return [LiveData] A [LiveData] with [PdfRenderEvent] that represents current state of opening PDF process.
+     * @param eventListener Callback to listen to render events.
      *
-     * @see [LiveData]
      * @see [PdfRenderEvent]
      */
-    fun openPdf(file: File): LiveData<PdfRenderEvent> {
-        val renderingProcess = MutableLiveData<PdfRenderEvent>()
+    fun openPdf(file: File, eventListener: ((PdfRenderEvent) -> Unit)? = null) {
         (parent as ViewGroup).doOnLayout { view ->
             pagesContainer.removeAllViews()
 
             val targetBitmapWidth = (view.width * renderResolutionFactor).toInt()
             try {
                 val renderHelper = PdfRenderHelper(file, targetBitmapWidth)
-                renderPages(renderHelper, renderingProcess)
+                renderPages(renderHelper, eventListener)
             } catch (exception: IOException) {
                 // Some IO problems including file not in PDF format
-                renderingProcess.postValue(PdfRenderEvent.Error(PdfRenderException(cause = exception)))
+                eventListener?.invoke(PdfRenderEvent.Error(PdfRenderException(cause = exception)))
             }
         }
-        return renderingProcess
     }
 
     /**
      * Opens and displays file associated with [filePath] in PDF format.
      *
-     * Subscribe to result [LiveData] for receiving rendering events.
+     * Pass an [eventListener] parameter for receiving rendering events.
      *
      * @param filePath Path to file in PDF format to render and display.
-     * @return [LiveData] A [LiveData] with [PdfRenderEvent] that represents current state of opening PDF process.
+     * @param eventListener Callback to listen to render events.
      *
-     * @see [LiveData]
      * @see [PdfRenderEvent]
      */
-    fun openPdf(filePath: String): LiveData<PdfRenderEvent> = openPdf(File(filePath))
+    fun openPdf(filePath: String, eventListener: ((PdfRenderEvent) -> Unit)? = null) =
+        openPdf(File(filePath), eventListener)
 
     /**
      * Notifies you that page at [pageIndex] has been rendered to a specified [bitmap].
@@ -155,22 +155,22 @@ open class PdfView @JvmOverloads constructor(
      * Notifies you that view for rendered page at [pageIndex] has been inflated to [pageView].
      *
      * Can be useful to react on inflating events.
-     * Also can be used fot modifying inflated [pageView] according to your requirements.
+     * Also can be used for modifying inflated [pageView] according to your requirements.
      *
      * @param pageIndex An index of rendered page.
      * @param pageView An inflated view for rendered page
      */
     open fun onPageInflated(pageIndex: Int, pageView: View) = Unit
 
-    private fun renderPages(renderHelper: PdfRenderHelper, renderingProcess: MutableLiveData<PdfRenderEvent>) {
+    private fun renderPages(renderHelper: PdfRenderHelper, eventListener: ((PdfRenderEvent) -> Unit)? = null) {
         renderingDisposable?.dispose()
         renderingDisposable = renderHelper.renderAll()
             .subscribeOn(Schedulers.computation())
             .observeOn(AndroidSchedulers.mainThread())
-            .doOnSubscribe { renderingProcess.postValue(PdfRenderEvent.Processing) }
+            .doOnSubscribe { eventListener?.invoke(PdfRenderEvent.Processing) }
             .doOnNext { (index, bitmap) -> onPageRendered(index, bitmap) }
-            .doOnComplete { renderingProcess.postValue(PdfRenderEvent.Completed) }
-            .doOnError { renderingProcess.postValue(PdfRenderEvent.Error(it)) }
+            .doOnComplete { eventListener?.invoke(PdfRenderEvent.Completed) }
+            .doOnError { throwable -> eventListener?.invoke(PdfRenderEvent.Error(throwable)) }
             .doOnTerminate(renderHelper::close)
             .map(PdfRenderHelper.RenderedPageData::bitmap)
             .subscribe(::addPage)
@@ -178,8 +178,8 @@ open class PdfView @JvmOverloads constructor(
 
     private fun addPage(pageBitmap: Bitmap) {
         View.inflate(context, pageLayoutRes, null)
-            .also { pageView -> onPageInflated(pagesContainer.childCount, pageView) }
             .apply { id = View.generateViewId() }
+            .also { pageView -> onPageInflated(pagesContainer.childCount, pageView) }
             .also(pagesContainer::addView)
             .findViewById<ImageView>(pageLayoutImageViewId)
             .setImageBitmap(pageBitmap)
