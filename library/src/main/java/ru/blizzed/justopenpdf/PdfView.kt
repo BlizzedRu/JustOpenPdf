@@ -25,6 +25,7 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.LinearLayout
 import androidx.annotation.AttrRes
+import androidx.annotation.CallSuper
 import androidx.annotation.IdRes
 import androidx.annotation.LayoutRes
 import androidx.core.content.withStyledAttributes
@@ -161,6 +162,12 @@ open class PdfView @JvmOverloads constructor(
      * @param pageView An inflated view for rendered page
      */
     open fun onPageInflated(pageIndex: Int, pageView: View) = Unit
+
+    @CallSuper
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        renderingDisposable?.dispose()
+    }
 
     private fun renderPages(renderHelper: PdfRenderHelper, eventListener: ((PdfRenderEvent) -> Unit)? = null) {
         renderingDisposable?.dispose()
