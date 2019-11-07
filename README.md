@@ -91,7 +91,7 @@ Since this view is based on `ZoomLayout` you can use all its features. [Read mor
 ## Warning
 
 This library is not well optimized. PDF file renders entirely, all pages at once.
-So you can encounter an memory troubles if you will try to open PDF with a big amount of pages.
+So you can encounter memory troubles if you will try to open PDF with a big amount of pages.
 A size of each bitmap depends on container's size. With increasing of screen resolution a memory consumption also increases.
 You can affect on bitmaps sizes using `app:renderResolutionFactor` attribute. The default factor is 1
 (it means that bitmap size will coincide with the size of PdfView container).
