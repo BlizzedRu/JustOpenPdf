@@ -5,7 +5,7 @@ Are you looking for a simple solution to open PDF but all options don't suit you
 
 Here **JustOpenPdf** is! 
 * It doesn't bloat out your apk size (really lightweight)
-* It's under Apache GNU License 2.0 that gives you a lot of freedom
+* It's under Apache License 2.0 that gives you a lot of freedom
 * It's based on [ZoomLayout](https://github.com/natario1/ZoomLayout) so you get a very customizable solution
 * It doesn't drag third-party libraries for PDF rendering – just uses built-in Android [PdfRenderer](https://developer.android.com/reference/android/graphics/pdf/PdfRenderer)
 * Min SDK – 21 Lollipop
